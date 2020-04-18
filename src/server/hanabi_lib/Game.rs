@@ -26,6 +26,7 @@ pub enum Action {
     Discard(usize),
     Play(usize),
     GiveHint(Hint, usize),
+    Swap(usize, usize),
 }
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
@@ -202,12 +203,16 @@ impl Game {
     }
 
     pub fn take_action(&mut self, action: Action, actor: usize) -> bool {
-        if actor != self.turn {
-            println!("NOT PLAYER {}'s TURN!!!", actor);
-            return false;
-        } else if self.is_over() {
+        if self.is_over() {
             println!("The game has ended!");
             return false;
+        }
+
+        if actor != self.turn {
+            if let Action::Swap(_,_) = action {} else {
+                println!("NOT PLAYER {}'s TURN!!!", actor);
+                return false;
+            }
         }
 
         let actor_name = self.players[actor].name.clone();
@@ -245,7 +250,7 @@ impl Game {
                 if self.piles[card.color as usize] + 1 == card.value as usize {
                     self.piles[card.color as usize] = card.value as usize;
                     if card.value == Value::Five {
-                        self.hints_left = std::cmp::max(self.hints_left + 1, 8);
+                        self.hints_left = std::cmp::min(self.hints_left + 1, 8);
                     }
 
                     self.draw(actor);
@@ -277,6 +282,18 @@ impl Game {
     
                 self.last_action = Some(format!("{} gave a hint about cards with the {} to {}", actor_name, hint_string, self.players[other_player].name.clone()));
             },
+
+            Action::Swap(index1, index2) => {
+                let mut player = &mut self.players[actor];
+
+                if index1 >= player.hand.len() || index2 >= player.hand.len() {
+                    return false;
+                }                
+
+                player.hand.swap(index1, index2);
+                player.known_colors.swap(index1, index2);
+                player.known_values.swap(index1, index2);
+            }
         }
 
         self.turn = (self.turn + 1) % self.players.len();

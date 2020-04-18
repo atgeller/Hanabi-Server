@@ -1,9 +1,18 @@
-var ws = new WebSocket("ws://127.0.0.1:7878/socketserver");
+var ws = new WebSocket(`ws://${window.location.host}/socketserver`);
 
 var name = undefined;
 
 var colors = ["White", "Yellow", "Red", "Blue", "Green", "Rainbow"];
 var values = ['One', 'Two', 'Three', 'Four', 'Five'];
+
+/*
+TODOs:
+Drag and drop instead of/in addition to popover
+Show which card is most recent drawn
+Make all cards same size
+Visually distinct value known
+Card slots for hand and piles
+*/
 
 ws.onmessage = function (event) {
     console.log(event.data);
@@ -37,6 +46,11 @@ function Discard(index) {
     ws.send(`/discard ${index}`);
 }
 
+function Swap(index1, index2) {
+    console.log(`Swap ${index1} ${index2}\n`);
+    ws.send(`/swap ${index1} ${index2}`);
+}
+
 function GiveColorHint(color, player) {
     console.log(`GiveHint ${color} to ${player}\n`);
     ws.send(`/hint {"variant":"ColorHint","fields":["${color}"]} ${player}`);
@@ -45,6 +59,31 @@ function GiveColorHint(color, player) {
 function GiveValueHint(value, player) {
     console.log(`GiveHint ${value} to ${player}\n`);
     ws.send(`/hint {"variant":"ValueHint","fields":["${value}"]} ${player}`);
+}
+
+function AllowDrop(ev) {
+    ev.preventDefault();
+}
+  
+function Drag(ev) {
+    ev.dataTransfer.setData("index", ev.target.dataset.index);   
+}
+  
+function Drop(ev) {
+    var targetwell = ev.target.closest(".cardwell");
+    console.log(targetwell);
+    ev.preventDefault();
+    var card = ev.dataTransfer.getData("index");
+    var well = targetwell.dataset.index;
+    console.log(`Move ${card} to ${well}`);
+
+    if (well == "play") {
+        Play(card);
+    } else if (well == "discard") {
+        Discard(card);
+    } else if (card != well) {
+        Swap(card, well);
+    }
 }
 
 function CardToHTML(card, index, mine) {
@@ -58,18 +97,17 @@ function CardToHTML(card, index, mine) {
         'Empty': "Empty",
     };
 
-    var props = "";
-    if (index != -1) {
-        props += `data-index=${index} `;
+    var props = (index != -1) ? `data-index=${index}` : "" ;
+    var divprops = `${props} ${mine ? 'ondrop="Drop(event)" ondragover="AllowDrop(event)"' : ""}`;
+    var btnprops = `${props} ${mine ? 'draggable="true" ondragstart="Drag(event)"' : ""}`;
+    var classes = card.color;   
+
+    if (!card.color) {
+        classes = card.value ? "known" : "unknown";
     }
 
-    if (!mine) {
-        props += "disabled";
-    }
-
-    var inner = `<span class="">${card.color || "Unknown"} ${strtonum[card.value || "??"]}</span>\n`;
-    var outer = `<div style="float: left">\n<button type="button" class="btn hcard ${card.color || "Unknown"}" data-toggle="popover" ${props}>\n${inner}</button>\n</div>\n`;
-
+    var inner = `<span>${card.color || "Unknown"} ${strtonum[card.value || "??"]}</span>\n`;
+    var outer = `<div class="cardwell cardbacking" ${divprops}>\n<button type="button" class="btn btn-block hcard ${classes}" data-toggle="popover" ${btnprops}>\n${inner}</button>\n</div>\n`;
     return outer;
 }
 
@@ -114,15 +152,15 @@ function FormatStats(hints, bombs) {
     var hintGroup = "";
     for (let i = 1; i <= 8; i++) {
         if (i <= hints) {
-            hintGroup += '<button type="button" class="btn btn-primary btn-xs">\n<span>X</span>\n</button>\n';
+            hintGroup += '<button class="btn btn-primary btn-sm">\nX\n</button>\n';
         } else {
-            hintGroup += '<button type="button" class="btn btn-primary btn-xs" disabled >\n<span>-</span>\n</button>\n';
+            hintGroup += '<button class="btn btn-primary btn-sm" disabled >\n-\n</button>\n';
         }
     }
 
     var bombGroup = "";
     for (let i = 1; i <= bombs; i++) {
-        bombGroup += '<button type="button" class="btn btn-dark" disabled>\n<span>Boom!</span>\n</button>\n';
+        bombGroup += '<button class="btn btn-dark btn-sm">\nBoom!\n</button>\n';
     }
 
     return `<div class="card m-3">\n
@@ -141,7 +179,7 @@ function FormatStats(hints, bombs) {
 
 function FormatDiscarded(discarded) {
     return `<div class="card m-3">\n
-        <div class="card-body">\n
+        <div class="card-body cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="discard">\n
             <h5 class="card-title">Discarded</h5>\n
             <div id="discard">\n
                 ${FormatCards(discarded, false, false)}
@@ -202,7 +240,7 @@ function FormatGame(update) {
             <div style="width: 100%">\n
                 <centering>\n
                     <div class="card">\n
-                        <div class="card-body mx-auto">\n
+                        <div class="card-body mx-auto cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="play">\n
                             ${FormatPiles(game["piles"])}
                         </div>\n
                     </div>\n
@@ -224,6 +262,7 @@ function FormatGame(update) {
 
     $('body')[0].innerHTML = html;
 
+    /*
     $(function () { 
         $('.hcard').popover({
             placement: 'auto',
@@ -236,7 +275,7 @@ function FormatGame(update) {
             container: 'body',
             trigger: 'focus'
         });
-    });
+    });*/
 
     $(function () { 
         $('.give-hint').popover({
@@ -274,7 +313,6 @@ function FormatGame(update) {
                 return group;
             },
             container: 'body',
-            focus: 'trigger',
         });
     });
 }

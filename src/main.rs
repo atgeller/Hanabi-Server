@@ -6,8 +6,8 @@ use actix::prelude::*;
 use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 
+use std::env;
 use std::fs;
-
 use std::vec::Vec;
 
 mod server;
@@ -139,6 +139,27 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                                 ctx.text("ERROR: Malformed Discard request");
                             }
                         },
+                        "/swap" => {
+                            if v.len() == 3 {
+                                self.addr.send(server::Swap {
+                                    id: self.id,
+                                    index1: v[1].parse::<usize>().unwrap(),
+                                    index2: v[2].parse::<usize>().unwrap(),
+                                })
+                                .into_actor(self)
+                                .then(|res, act, ctx| {
+                                    match res {
+                                        Ok(res) => ctx.text(res),
+                                        // something is wrong with chat server
+                                        _ => ctx.stop(),
+                                    }
+                                    fut::ready(())
+                                })
+                                .wait(ctx);
+                            } else {
+                                ctx.text("ERROR: Malformed Swap request");
+                            }
+                        },
                         "/hint" => {
                             if v.len() == 3 {
                                 self.addr.send(server::GiveHint {
@@ -176,6 +197,8 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
 
 #[actix_rt::main]
 async fn main() -> std::io::Result<()> {
+    let args: Vec<String> = env::args().collect();
+    let ip = &args[1];
     let server = server::GameServer::default().start();
 
     HttpServer::new(move || {
@@ -186,7 +209,7 @@ async fn main() -> std::io::Result<()> {
             .route("/cards.js", web::get().to(script))
             .route("/style.css", web::get().to(style))
     })
-    .bind("127.0.0.1:7878")?
+    .bind(ip)?
     .run()
     .await
 }

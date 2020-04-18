@@ -53,6 +53,14 @@ pub struct GiveHint {
     pub hint: String,
 }
 
+#[derive(Message)]
+#[rtype(String)]
+pub struct Swap {
+    pub id: usize,
+    pub index1: usize,
+    pub index2: usize,
+}
+
 struct ConnectedPlayer {
     name: String,
     id: usize,
@@ -162,6 +170,32 @@ impl Handler<Discard> for GameServer {
         println!("Player #{} discarding {}", player_index, msg.card_index);
 
         let valid = self.game.take_action(Action::Discard(msg.card_index),*player_index);
+
+        if !valid {
+            return String::from("ERROR: Invalid Action!!!");
+        } else {
+            self.send_update();
+            String::from("Success")
+        }
+    }
+}
+
+impl Handler<Swap> for GameServer {
+    type Result = String;
+
+    fn handle(&mut self, msg: Swap, _: &mut Self::Context) -> Self::Result {
+        if self.players.len() < MAXPLAYERS {
+            return String::from("ERROR: The Game hasn't started yet!!!");
+        }
+
+        let player_index = match self.ids.get(&msg.id) {
+            Some(index) => index,
+            None => return String::from("ERROR: ID Invalid!")
+        };
+        
+        println!("Player #{} swapping {} and {}", player_index, msg.index1, msg.index2);
+
+        let valid = self.game.take_action(Action::Swap(msg.index1, msg.index2),*player_index);
 
         if !valid {
             return String::from("ERROR: Invalid Action!!!");
