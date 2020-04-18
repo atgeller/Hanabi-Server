@@ -1,0 +1,48 @@
+.hint {
+    font-weight: bold;
+    color: Black;
+    border: 2px solid Black;
+}
+
+.give-hint {
+}
+
+.hcard {
+    font-weight: bold;
+    color: Black;
+    border: 2px solid Black;
+    margin: 2px;
+}
+
+.rainbow {
+    background-image: linear-gradient(to bottom right, Red, White, DodgerBlue, Yellow);
+}
+
+.white{
+    background-color:White;
+}
+
+.blue {
+    background-color: DodgerBlue;
+}
+
+.red {
+    background-color: Red;
+}
+
+.green {
+    background-color: MediumSeaGreen;
+}
+
+.yellow {
+    background-color: Yellow;
+}
+
+.unknown {
+    background-color: Gray;
+}
+
+.current-player {
+    background-color: Green;
+    color: White;
+}
