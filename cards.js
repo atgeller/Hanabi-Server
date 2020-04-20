@@ -182,7 +182,7 @@ function FormatDiscarded(discarded) {
         <div class="card-body cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="discard">\n
             <h5 class="card-title">Discarded</h5>\n
             <div id="discard">\n
-                ${FormatCards(discarded, false, false)}
+                ${FormatCards(discarded, -1, false)}
             </div>\n
         </div>\n
     </div>\n`;
