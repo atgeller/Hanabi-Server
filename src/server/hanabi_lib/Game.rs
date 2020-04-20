@@ -5,7 +5,7 @@ extern crate rustc_serialize;
 
 use rustc_serialize::json;
 
-use crate::server::hanabi_lib::Deck::{init_count, Value, Color, Card, Deck};
+use crate::server::hanabi_lib::deck::{init_count, Value, Color, Card, Deck};
 
 #[derive(Clone, Copy, Debug, RustcDecodable, RustcEncodable)]
 pub enum Hint {
@@ -14,7 +14,7 @@ pub enum Hint {
 }
 
 #[derive(Debug, RustcDecodable, RustcEncodable)]
-pub struct Player {
+struct Player {
     name : String,
     known_colors : [Option::<Color>; 5],
     known_values : [Option::<Value>; 5],
@@ -43,7 +43,7 @@ pub struct Game {
 }
 
 #[derive(Clone, Copy, Debug, RustcDecodable, RustcEncodable)]
-pub enum Status {
+enum Status {
     Won,
     Lost,
     Playing,
@@ -222,7 +222,7 @@ impl Game {
                 let mut player = &mut self.players[actor];
                 let mut hand = &mut player.hand;
 
-                if index < 0 || index >= hand.len() {
+                if index >= hand.len() {
                     println!("No Card there to play!");
                     return false;
                 }
@@ -240,7 +240,7 @@ impl Game {
                 let mut player = &mut self.players[actor];
                 let mut hand = &mut player.hand;
 
-                if index < 0 || index >= hand.len() {
+                if index >= hand.len() {
                     println!("No Card there to play!");
                     return false;
                 }

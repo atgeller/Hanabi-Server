@@ -1,15 +1,13 @@
 extern crate actix;
-extern crate actix_web;
 extern crate actix_web_actors;
 
 use actix::prelude::*;
-use actix_web::{web, App, Error, HttpRequest, HttpResponse, HttpServer, Responder};
 use actix_web_actors::ws;
 
 use std::fs;
 
 pub mod hanabi_lib;
-use hanabi_lib::Game::{Game,Action,Hint};
+use hanabi_lib::game::{Game,Action,Hint};
 
 use std::vec::Vec;
 use std::collections::HashMap;
@@ -67,17 +65,26 @@ struct ConnectedPlayer {
     address: Recipient<Message>,
 }
 
-const MAXPLAYERS : usize = 2;
-
 /// Define http actor
 pub struct GameServer {
     players: Vec<ConnectedPlayer>,
     ids: HashMap<usize,usize>,
     rng: ThreadRng,
     game: Game,
+    max_players: usize,
 }
 
 impl GameServer {
+    pub fn new(max_players: usize) -> GameServer {
+        GameServer {
+            players: Vec::<ConnectedPlayer>::with_capacity(max_players),
+            ids: HashMap::<usize,usize>::new(),
+            rng: rand::thread_rng(),
+            game: Game::new(max_players),
+            max_players: max_players,
+        }
+    }
+
     fn send_update(&mut self) {
         for i in 0..self.players.len() {
             self.players[i].address.do_send(Message(self.game.get_player_view(i)));
@@ -89,22 +96,11 @@ impl Actor for GameServer {
     type Context = Context<Self>;
 }
 
-impl Default for GameServer {
-    fn default() -> GameServer {
-        GameServer {
-            players: Vec::<ConnectedPlayer>::with_capacity(MAXPLAYERS),
-            ids: HashMap::<usize,usize>::new(),
-            rng: rand::thread_rng(),
-            game: Game::new(MAXPLAYERS),
-        }
-    }
-}
-
 impl Handler<Join> for GameServer {
     type Result = usize;
 
     fn handle(&mut self, msg: Join, _: &mut Self::Context) -> Self::Result {
-        if self.players.len() >= MAXPLAYERS {
+        if self.players.len() >= self.max_players {
             return 0;
         }
 
@@ -120,7 +116,7 @@ impl Handler<Join> for GameServer {
 
         println!("Player {} joined as {} with id {}", msg.name, self.players.len() - 1, id);
 
-        if (self.players.len() == MAXPLAYERS) {
+        if (self.players.len() == self.max_players) {
             self.send_update();
         }
 
@@ -132,7 +128,7 @@ impl Handler<PlayCard> for GameServer {
     type Result = String;
 
     fn handle(&mut self, msg: PlayCard, _: &mut Self::Context) -> Self::Result {
-        if self.players.len() < MAXPLAYERS {
+        if self.players.len() < self.max_players {
             return String::from("ERROR: The Game hasn't started yet!!!");
         }
 
@@ -158,7 +154,7 @@ impl Handler<Discard> for GameServer {
     type Result = String;
 
     fn handle(&mut self, msg: Discard, _: &mut Self::Context) -> Self::Result {
-        if self.players.len() < MAXPLAYERS {
+        if self.players.len() < self.max_players {
             return String::from("ERROR: The Game hasn't started yet!!!");
         }
 
@@ -184,7 +180,7 @@ impl Handler<Swap> for GameServer {
     type Result = String;
 
     fn handle(&mut self, msg: Swap, _: &mut Self::Context) -> Self::Result {
-        if self.players.len() < MAXPLAYERS {
+        if self.players.len() < self.max_players {
             return String::from("ERROR: The Game hasn't started yet!!!");
         }
 
@@ -210,7 +206,7 @@ impl Handler<GiveHint> for GameServer {
     type Result = String;
 
     fn handle(&mut self, msg: GiveHint, _: &mut Self::Context) -> Self::Result {
-        if self.players.len() < MAXPLAYERS {
+        if self.players.len() < self.max_players {
             return String::from("ERROR: The Game hasn't started yet!!!");
         }
 

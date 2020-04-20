@@ -199,7 +199,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let ip = &args[1];
-    let server = server::GameServer::default().start();
+    let server = server::GameServer::new(args[2].parse::<usize>().unwrap()).start();
 
     HttpServer::new(move || {
         App::new()
