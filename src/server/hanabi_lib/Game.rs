@@ -294,6 +294,8 @@ impl Game {
                 player.known_colors.swap(index1, index2);
                 player.known_values.swap(index1, index2);
             }
+
+            return true;
         }
 
         self.turn = (self.turn + 1) % self.players.len();
