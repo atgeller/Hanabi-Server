@@ -15,7 +15,7 @@ Card slots for hand and piles
 */
 
 ws.onmessage = function (event) {
-    console.log(event.data);
+    //console.log(event.data);
     if (event.data.startsWith("ERROR")) {
         return;
     } else if (event.data.startsWith("Success")) {
@@ -98,7 +98,7 @@ function CardToHTML(card, index, mine) {
     };
 
     var props = (index != -1) ? `data-index=${index}` : "" ;
-    var divprops = `${props} ${mine ? 'ondrop="Drop(event)" ondragover="AllowDrop(event)"' : ""}`;
+    var divprops = `${props} ${mine ? `ondrop="Drop(event)" ondragover="AllowDrop(event)"` : ""}`;
     var btnprops = `${props} ${mine ? 'draggable="true" ondragstart="Drag(event)"' : ""}`;
     var classes = card.color;   
 
@@ -203,7 +203,7 @@ function FormatPiles(piles) {
         group += CardToHTML({
             "color": colors[i], 
             "value": pileSizeToStr[piles[i]],
-        }, false, false) + "\n";
+        }, -1, false) + "\n";
     }
 
     return `<div class="card">
@@ -258,7 +258,7 @@ function FormatGame(update) {
         `
     }
 
-    console.log(html)
+    //console.log(html)
 
     $('body')[0].innerHTML = html;
 
