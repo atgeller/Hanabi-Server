@@ -1,2 +1,2 @@
-pub mod Deck;
-pub mod Game;
+pub mod deck;
+pub mod game;
