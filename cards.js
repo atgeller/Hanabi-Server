@@ -82,11 +82,15 @@ function Drop(ev) {
     } else if (well == "discard") {
         Discard(card);
     } else if (card != well) {
-        Swap(card, well);
+        if (well == undefined) {
+            console.log(targetwell)
+        } else {
+            Swap(card, well);
+        }
     }
 }
 
-function CardToHTML(card, index, mine) {
+function CardToHTML(card, index, mine, pile=false) {
     var strtonum = {
         'One': 1,
         'Two': 2,
@@ -107,7 +111,7 @@ function CardToHTML(card, index, mine) {
     }
 
     var inner = `<span>${card.color || "Unknown"} ${strtonum[card.value || "??"]}</span>\n`;
-    var outer = `<div class="cardwell cardbacking" ${divprops}>\n<button type="button" class="btn btn-block hcard ${classes}" data-toggle="popover" ${btnprops}>\n${inner}</button>\n</div>\n`;
+    var outer = `<div class="${mine ? "cardwell" : ""} cardbacking" ${divprops}>\n<button type="button" class="btn btn-block ${pile ? "pcard" : "hcard"} ${classes}" data-toggle="popover" ${btnprops}>\n${inner}</button>\n</div>\n`;
     return outer;
 }
 
@@ -178,7 +182,7 @@ function FormatStats(hints, bombs) {
 }
 
 function FormatDiscarded(discarded) {
-    return `<div class="card m-3">\n
+    return `<div class="card m-1">\n
         <div class="card-body cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="discard">\n
             <h5 class="card-title">Discarded</h5>\n
             <div id="discard">\n
@@ -199,21 +203,24 @@ function FormatPiles(piles) {
     };
     var group = "";
 
-    for (var i = 0; i < colors.length; i++) {
+    for (var i = 0; i < piles.length && i < colors.length; i++) {
         group += CardToHTML({
             "color": colors[i], 
             "value": pileSizeToStr[piles[i]],
-        }, -1, false) + "\n";
+        }, -1, false, true) + "\n";
     }
 
-    return `<div class="card">
-        <div class="card-body">
-            <h5 class="card-title">Piles</h5>
-            <div id="piles">
-                ${group}
-            </div>
-        </div>
-    </div>`;
+    return `
+    <div class="card m-1">\n
+        <div class="card-body mx-auto cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="play">\n
+            <centering>\n
+                <h5 class="card-title">Piles</h5>
+                <div id="piles">
+                    ${group}
+                </div>
+            </centering>\n
+        </div>\n
+    </div>\n`;
 }
 
 function FormatGame(update) {
@@ -224,27 +231,20 @@ function FormatGame(update) {
     if (game["state"] == "Playing") {
         html = `
         <div class="container-fluid">\n
-            ${update_message ? `<div class="jumbotron">\n
-                <h1>Last Action</h1>\n
-                <p>${update_message}</p>\n
-            </div>\n` : ""}
+            <nav class="navbar sticky-top navbar-light bg-light">
+                <p><h1>Last Action:</h1> ${update_message ? update_message : ""}</p>\n
+                ${FormatStats(game["hints_left"], game["bombs"])}
+            </nav>
             <div class="row">\n
-                <div id="players" class="col-md-6">\n
-                    ${FormatPlayers(game["players"], game["hints_left"], game["turn"])}
+                <div class="col-md-8">\n
+                    <div class="card">\n
+                        ${FormatPlayers(game["players"], game["hints_left"], game["turn"])}
+                    </div>\n
                 </div>\n
-                <div class="col-md-6">\n
-                    ${FormatStats(game["hints_left"], game["bombs"])}
+                <div class="col-md-4">\n
+                    ${FormatPiles(game["piles"])}
                     ${FormatDiscarded(game["discard"])}
                 </div>\n
-            </div>\n
-            <div style="width: 100%">\n
-                <centering>\n
-                    <div class="card">\n
-                        <div class="card-body mx-auto cardwell" ondrop="Drop(event)" ondragover="AllowDrop(event)" data-index="play">\n
-                            ${FormatPiles(game["piles"])}
-                        </div>\n
-                    </div>\n
-                </centering>\n
             </div>\n
         </div>\n
         `
@@ -291,6 +291,8 @@ function FormatGame(update) {
                 group += '<div class="dropdown-menu">\n';
 
                 colors.forEach(function (color) {
+                    if (color == "Rainbow") return;
+
                     group += `<button type="button" class="dropdown-item ${color} hint" onclick="GiveColorHint('${color}', '${name}');">\n
                         <span>${color}</span>\n
                     </button>\n`;

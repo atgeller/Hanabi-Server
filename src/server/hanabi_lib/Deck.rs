@@ -92,9 +92,13 @@ pub fn init_count(val: Value) -> i32 {
 impl Deck {
     const DECKSIZE: usize = 60;
 
-    pub fn initialize() -> Deck {
+    pub fn initialize(include_rainbow: bool) -> Deck {
         let mut cards = VecDeque::<Card>::with_capacity(Deck::DECKSIZE);
         for color in COLORS.iter() {
+            if !include_rainbow && *color == Color::Rainbow {
+                continue;
+            }
+
             for val in VALUES.iter() {
                 for _i in 0..init_count(*val) {
                     cards.push_back(Card{color: *color, value: *val});

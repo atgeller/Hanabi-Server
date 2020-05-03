@@ -101,9 +101,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         },
                         "/play" => {
                             if v.len() == 2 {
+                                let card_index = v[1].parse::<usize>();
+                                if card_index.is_err() {
+                                    return
+                                }
+
                                 self.addr.send(server::PlayCard {
                                     id: self.id,
-                                    card_index: v[1].parse::<usize>().unwrap(),
+                                    card_index: card_index.unwrap(),
                                 })
                                 .into_actor(self)
                                 .then(|res, act, ctx| {
@@ -121,9 +126,14 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         },
                         "/discard" => {
                             if v.len() == 2 {
+                                let card_index = v[1].parse::<usize>();
+                                if card_index.is_err() {
+                                    return
+                                }
+
                                 self.addr.send(server::Discard {
                                     id: self.id,
-                                    card_index: v[1].parse::<usize>().unwrap(),
+                                    card_index: card_index.unwrap(),
                                 })
                                 .into_actor(self)
                                 .then(|res, act, ctx| {
@@ -141,10 +151,16 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
                         },
                         "/swap" => {
                             if v.len() == 3 {
+                                let index1 = v[1].parse::<usize>();
+                                let index2 = v[2].parse::<usize>();
+                                if index1.is_err() || index2.is_err() {
+                                    return
+                                }
+
                                 self.addr.send(server::Swap {
                                     id: self.id,
-                                    index1: v[1].parse::<usize>().unwrap(),
-                                    index2: v[2].parse::<usize>().unwrap(),
+                                    index1: index1.unwrap(),
+                                    index2: index2.unwrap(),
                                 })
                                 .into_actor(self)
                                 .then(|res, act, ctx| {
@@ -199,7 +215,7 @@ impl StreamHandler<Result<ws::Message, ws::ProtocolError>> for WsChatSession {
 async fn main() -> std::io::Result<()> {
     let args: Vec<String> = env::args().collect();
     let ip = &args[1];
-    let server = server::GameServer::new(args[2].parse::<usize>().unwrap()).start();
+    let server = server::GameServer::new(args[2].parse::<usize>().unwrap(), args[3].parse::<bool>().unwrap()).start();
 
     HttpServer::new(move || {
         App::new()

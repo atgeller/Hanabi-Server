@@ -7,7 +7,7 @@ use actix_web_actors::ws;
 use std::fs;
 
 pub mod hanabi_lib;
-use hanabi_lib::game::{Game,Action,Hint};
+use hanabi_lib::game::{Game,Action,Hint,GameOptions};
 
 use std::vec::Vec;
 use std::collections::HashMap;
@@ -75,12 +75,15 @@ pub struct GameServer {
 }
 
 impl GameServer {
-    pub fn new(max_players: usize) -> GameServer {
+    pub fn new(max_players: usize, include_rainbow : bool) -> GameServer {
         GameServer {
             players: Vec::<ConnectedPlayer>::with_capacity(max_players),
             ids: HashMap::<usize,usize>::new(),
             rng: rand::thread_rng(),
-            game: Game::new(max_players),
+            game: Game::new(GameOptions {
+                num_players: max_players,
+                include_rainbow: include_rainbow
+            }),
             max_players: max_players,
         }
     }

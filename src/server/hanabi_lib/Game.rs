@@ -7,6 +7,12 @@ use rustc_serialize::json;
 
 use crate::server::hanabi_lib::deck::{init_count, Value, Color, Card, Deck};
 
+#[derive(Clone,Copy, Debug)]
+pub struct GameOptions{
+    pub include_rainbow : bool,
+    pub num_players : usize,
+}
+
 #[derive(Clone, Copy, Debug, RustcDecodable, RustcEncodable)]
 pub enum Hint {
     ColorHint(Color),
@@ -29,7 +35,7 @@ pub enum Action {
     Swap(usize, usize),
 }
 
-#[derive(Debug, RustcDecodable, RustcEncodable)]
+#[derive(Debug)]
 pub struct Game {
     deck:        Deck,
     discard:     VecDeque<Card>,
@@ -37,9 +43,10 @@ pub struct Game {
     bombs:       usize,
     turn:        usize,
     players:     Vec<Player>,
-    piles:       [usize; 6],
+    piles:       Vec<usize>,
     state:       Status,
     last_action: Option<String>,
+    options:     GameOptions,
 }
 
 #[derive(Clone, Copy, Debug, RustcDecodable, RustcEncodable)]
@@ -68,7 +75,7 @@ struct GameView {
     bombs:      usize,
     turn:       usize,
     players:    Vec<PlayerView>,
-    piles:      [usize; 6],
+    piles:      Vec<usize>,
     state:      Status,
 }
 
@@ -79,8 +86,10 @@ struct Update {
 }
 
 impl Game {
-    pub fn new(num_players: usize) -> Game {
-        let mut deck = Deck::initialize();
+    pub fn new(options: GameOptions) -> Game {
+        let num_players = options.num_players;
+        let mut deck = Deck::initialize(options.include_rainbow);
+
         for _ in 0..7 {
             deck.shuffle();
         }
@@ -109,9 +118,10 @@ impl Game {
             bombs: 0,
             turn: 0,
             players: players,
-            piles: [0; 6],
+            piles: vec![0; if options.include_rainbow { 6 } else { 5 }],
             state: Status::Playing,
             last_action: None,
+            options: options,
         }
     }
 
@@ -185,7 +195,7 @@ impl Game {
             Hint::ColorHint(color) => {
                 let mut known_colors = &mut player.known_colors;
                 for i in 0..hand.len() {
-                    if hand[i].color == color {
+                    if hand[i].color == color || hand[i].color == Color::Rainbow {
                         known_colors[i] = Some(color);
                     }
                 }
@@ -267,8 +277,11 @@ impl Game {
             },
 
             Action::GiveHint(hint, other_player) => {
-                if (self.hints_left == 0) {
+                if self.hints_left == 0 {
                     println!("NO HINTS TO GIVE");
+                    return false;
+                } else if let Hint::ColorHint(Color::Rainbow) = hint {
+                    println!("Cannot give rainbow hint!");
                     return false;
                 }
 
